@@ -5,16 +5,17 @@
 .NOTES
     GPU:   RTX 3070 Ti (8GB VRAM, CUDA)
     Shell: PowerShell
-    Run from project root. Run as Administrator for winget installs.
+    Run from the backend directory or project root.
+    Run as Administrator for winget installs.
 #>
 
 $ErrorActionPreference = "Stop"
 
-$ProjectRoot = "C:\The-Ossuary\Revenant-Systems\Projects\Local-Auto-Claw"
-$BackendDir  = "$ProjectRoot\backend"
+$BackendDir  = $PSScriptRoot
+$ProjectRoot = Split-Path -Parent $PSScriptRoot
 $ComfyDir    = "$BackendDir\comfyui"
 $WorkflowDir = "$BackendDir\workflows"
-$ConfigDir   = "$env:USERPROFILE\.openclaw"
+$ConfigDir   = "$ProjectRoot\.openclaw"
 
 Write-Host ""
 Write-Host "+==========================================+" -ForegroundColor Cyan
@@ -157,16 +158,23 @@ Write-Host "[4/4] OpenClaw configuration" -ForegroundColor Yellow
 
 New-Item -ItemType Directory -Path $ConfigDir -Force | Out-Null
 
-# .env
+# Project-root .env — read by OpenClaw at step 2 (CWD .env) so OPENCLAW_STATE_DIR
+# is resolved before OpenClaw tries to find ~/.openclaw on C:.
+$ConfigDirFwd = $ConfigDir.Replace('\', '/')
 @"
-# OpenClaw local backend -- Yggdrasil
+OPENCLAW_STATE_DIR=$ConfigDirFwd
+"@ | Set-Content -Path "$ProjectRoot\.env" -Encoding UTF8
+Write-Host "  $ProjectRoot\.env  (OPENCLAW_STATE_DIR)" -ForegroundColor Gray
+
+# State-dir .env — provider auth loaded after OPENCLAW_STATE_DIR is known.
+@"
+# OpenClaw local backend — Yggdrasil
 # OLLAMA_API_KEY triggers auto-discovery of all local Ollama models.
 OLLAMA_API_KEY=ollama-local
 "@ | Set-Content -Path "$ConfigDir\.env" -Encoding UTF8
 Write-Host "  $ConfigDir\.env" -ForegroundColor Gray
 
 # openclaw.json
-# workflowPath uses forward slashes (Windows accepts these in paths)
 $WorkflowPath = "$WorkflowDir\sd15-api.json".Replace('\', '/')
 
 @"

@@ -4,10 +4,15 @@
     Starts Ollama and ComfyUI if not already running.
 #>
 
-$ProjectRoot = "C:\The-Ossuary\Revenant-Systems\Projects\Local-Auto-Claw"
-$ComfyDir    = "$ProjectRoot\backend\comfyui"
+$BackendDir  = $PSScriptRoot
+$ProjectRoot = Split-Path -Parent $PSScriptRoot
+$ComfyDir    = "$BackendDir\comfyui"
 $ComfyPython = "$ComfyDir\python_embeded\python.exe"
 $ComfyMain   = "$ComfyDir\ComfyUI\main.py"
+$ConfigDir   = "$ProjectRoot\.openclaw"
+
+# Set for this session and any child processes so OpenClaw never looks at C:.
+$env:OPENCLAW_STATE_DIR = $ConfigDir
 
 Write-Host ""
 Write-Host "=== Starting OpenClaw Local Backend ===" -ForegroundColor Cyan
@@ -54,7 +59,11 @@ Write-Host "Services" -ForegroundColor Cyan
 Write-Host "  Ollama  : http://localhost:11434" -ForegroundColor White
 Write-Host "  ComfyUI : http://localhost:8188" -ForegroundColor White
 Write-Host ""
-Write-Host "Launch OpenClaw:" -ForegroundColor Cyan
+Write-Host "Launch OpenClaw (from this terminal):" -ForegroundColor Cyan
 Write-Host "  cd $ProjectRoot" -ForegroundColor White
 Write-Host "  node openclaw.mjs" -ForegroundColor White
+Write-Host ""
+Write-Host "  OPENCLAW_STATE_DIR is already set for this session." -ForegroundColor DarkGray
+Write-Host "  New terminal? Re-run start.ps1 or set it manually:" -ForegroundColor DarkGray
+Write-Host "  `$env:OPENCLAW_STATE_DIR = '$ConfigDir'" -ForegroundColor DarkGray
 Write-Host ""
