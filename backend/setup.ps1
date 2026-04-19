@@ -49,9 +49,9 @@ if (-not $ollamaRunning) {
 Write-Host "  Pulling models (first run: allow 20-40 min depending on connection)..." -ForegroundColor Gray
 
 $models = @(
-    @{ id = "llama3.1:8b";       label = "General chat    (8B,  ~5GB)" },
-    @{ id = "qwen2.5-coder:7b";  label = "Code generation (7B,  ~5GB)" },
-    @{ id = "nomic-embed-text";  label = "Memory embeddings     (~300MB)" }
+    @{ id = "dolphin3:8b";        label = "Primary chat     (8B, uncensored, ~5GB)" },
+    @{ id = "qwen2.5-coder:7b";   label = "Code generation  (7B,          ~5GB)" },
+    @{ id = "nomic-embed-text";   label = "Memory embeddings           (~300MB)" }
 )
 
 foreach ($m in $models) {
@@ -158,15 +158,15 @@ Write-Host "[4/4] OpenClaw configuration" -ForegroundColor Yellow
 
 New-Item -ItemType Directory -Path $ConfigDir -Force | Out-Null
 
-# Project-root .env — read by OpenClaw at step 2 (CWD .env) so OPENCLAW_STATE_DIR
-# is resolved before OpenClaw tries to find ~/.openclaw on C:.
+# Project-root .env — OPENCLAW_STATE_DIR is read at step 2 (CWD .env) so
+# OpenClaw never tries to resolve ~/.openclaw on C:.
 $ConfigDirFwd = $ConfigDir.Replace('\', '/')
 @"
 OPENCLAW_STATE_DIR=$ConfigDirFwd
 "@ | Set-Content -Path "$ProjectRoot\.env" -Encoding UTF8
 Write-Host "  $ProjectRoot\.env  (OPENCLAW_STATE_DIR)" -ForegroundColor Gray
 
-# State-dir .env — provider auth loaded after OPENCLAW_STATE_DIR is known.
+# State-dir .env — OLLAMA_API_KEY triggers auto-discovery of all local models.
 @"
 # OpenClaw local backend — Yggdrasil
 # OLLAMA_API_KEY triggers auto-discovery of all local Ollama models.
@@ -174,32 +174,14 @@ OLLAMA_API_KEY=ollama-local
 "@ | Set-Content -Path "$ConfigDir\.env" -Encoding UTF8
 Write-Host "  $ConfigDir\.env" -ForegroundColor Gray
 
-# openclaw.json
-$WorkflowPath = "$WorkflowDir\sd15-api.json".Replace('\', '/')
-
+# openclaw.json — no explicit providers block; Ollama auto-discovers via
+# OLLAMA_API_KEY. Comfy is configured interactively after first boot.
 @"
 {
-  "models": {
-    "providers": {
-      "ollama": {
-        "apiKey": "ollama-local",
-        "baseUrl": "http://127.0.0.1:11434"
-      },
-      "comfy": {
-        "mode": "local",
-        "baseUrl": "http://127.0.0.1:8188",
-        "image": {
-          "workflowPath": "$WorkflowPath",
-          "promptNodeId": "6",
-          "outputNodeId": "9"
-        }
-      }
-    }
-  },
   "agents": {
     "defaults": {
       "model": {
-        "primary": "ollama/llama3.1:8b",
+        "primary": "ollama/dolphin3:8b",
         "fallbacks": ["ollama/qwen2.5-coder:7b"]
       },
       "imageGenerationModel": {
@@ -225,9 +207,11 @@ Write-Host ""
 Write-Host "Next:" -ForegroundColor Cyan
 Write-Host "  1. Start services  ->  .\backend\start.ps1" -ForegroundColor White
 Write-Host "  2. Launch OpenClaw ->  node openclaw.mjs" -ForegroundColor White
+Write-Host "  3. Configure ComfyUI image gen:" -ForegroundColor White
+Write-Host "     openclaw configure" -ForegroundColor DarkGray
 Write-Host ""
 Write-Host "LLM models ready:" -ForegroundColor DarkGray
-Write-Host "  ollama/llama3.1:8b       (primary)" -ForegroundColor DarkGray
+Write-Host "  ollama/dolphin3:8b       (primary, uncensored)" -ForegroundColor DarkGray
 Write-Host "  ollama/qwen2.5-coder:7b  (code fallback)" -ForegroundColor DarkGray
 Write-Host "  ollama/nomic-embed-text  (memory embeddings)" -ForegroundColor DarkGray
 Write-Host ""
